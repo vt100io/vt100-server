@@ -7,7 +7,7 @@ mise run plan    # what would change at Hetzner and on the server; changes nothi
 mise run apply   # create the server, or bring it in line
 ```
 
-The first `apply` creates the server at Hetzner: a CX33 (4 vCPU, 8 GB) in Helsinki running Debian 13, with a firewall that lets in only ports 80 and 443, my rescue SSH key (`~/.ssh/vt100.pub`) for root instead of an emailed password, and a first boot that joins my tailnet as `tag:vt100` and `tag:ci`. SSH never faces the internet. The second `apply` configures it over Tailscale: git, a C compiler and mise for Punchcard's builds, the `deploy` user that [unit](https://github.com/vt100io/unit) deploys as, and Caddy, which serves `vt100.io` and `punchcard.vt100.io` over HTTPS with Let's Encrypt certificates. The Caddyfile here knows no apps: it sets the certificate email and imports the snippet unit writes for each app on deploy.
+The first `apply` creates the server at Hetzner: a CX33 (4 vCPU, 8 GB) in Helsinki running Debian 13, with a firewall that lets in only ports 80 and 443, my rescue SSH key (`~/.ssh/vt100.pub`) for root instead of an emailed password, and a first boot that joins my tailnet as `tag:vt100`. SSH never faces the internet. The second `apply` configures it over Tailscale: git, a C compiler and mise for Punchcard's builds, the `deploy` user that [unit](https://github.com/vt100io/unit) deploys as, and Caddy, which serves `vt100.io` and `punchcard.vt100.io` over HTTPS with Let's Encrypt certificates. The Caddyfile here knows no apps: it sets the certificate email and imports the snippet unit writes for each app on deploy.
 
 ## Secrets
 
@@ -22,7 +22,7 @@ With 1Password, set `VT100_SECRETS=op` and store them as **API Credential** item
 VT100_SECRETS=op mise run plan
 ```
 
-An environment variable always wins: `VT100_HETZNER_TOKEN` and `VT100_TAILSCALE_AUTHKEY`. That's the way to hand over the Tailscale auth key, which is used once, when the server is created, and isn't worth storing. Make a single-use, pre-approved key tagged `tag:vt100` and `tag:ci` with a one-day expiry, then paste it without it reaching your shell history:
+An environment variable always wins: `VT100_HETZNER_TOKEN` and `VT100_TAILSCALE_AUTHKEY`. That's the way to hand over the Tailscale auth key, which is used once, when the server is created, and isn't worth storing. Make a single-use, pre-approved key tagged `tag:vt100` with a one-day expiry, then paste it without it reaching your shell history:
 
 ```bash
 read -rs VT100_TAILSCALE_AUTHKEY && export VT100_TAILSCALE_AUTHKEY   # paste, then Enter
@@ -32,5 +32,6 @@ unset VT100_TAILSCALE_AUTHKEY
 
 ## Notes
 
-- The `deploy` user has passwordless sudo. unit writes files with `sudo tee` on paths it chooses, which is root in all but name, so a narrower sudo rule would protect nothing. The limit is the tailnet policy: only `tag:ci` reaches the server as `deploy`.
+- The `deploy` user has passwordless sudo. unit writes files with `sudo tee` on paths it chooses, which is root in all but name, so a narrower sudo rule would protect nothing. The limit is the tailnet policy: only my own devices reach the server as `deploy`.
+- Deploys run from my laptop, never from the server. Punchcard builds on the server, and a build runs whatever a repo's `ci` task says, so the server is given no way to reach other machines: it carries only `tag:vt100`, and no rule lets `tag:vt100` connect anywhere. A deploy has a person behind it, who sees it go wrong.
 - smed only touches servers labelled `smed=vt100`. A server made by hand in the same project is left alone.

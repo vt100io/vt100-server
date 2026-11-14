@@ -67,7 +67,7 @@ var server = hetzner.Server(name).
 	Type("cx33").Location("hel1").Image("debian-13").
 	SSHKeys(rescueKey).
 	OpenPorts(80, 443). // the site and Punchcard's webhook; SSH only over Tailscale
-	JoinTailnet(vt100Secret("tailscale-authkey"), "tag:vt100", "tag:ci")
+	JoinTailnet(vt100Secret("tailscale-authkey"), "tag:vt100")
 
 // caddyfile is Caddy's main configuration. unit writes one snippet per app
 // into /etc/caddy/conf.d (its domain and port) and reloads Caddy on deploy;
@@ -96,11 +96,12 @@ func host() *smed.HostSpec {
 		// The user unit deploys as. unit writes unit files and credentials
 		// with `sudo tee` on paths it chooses, which is root in all but
 		// name, so restricting sudo to its commands would protect nothing.
-		// The real limit is the tailnet policy: only tag:ci reaches this
-		// server as deploy.
+		// The real limit is the tailnet policy: only my own devices reach
+		// this server as deploy. Deploys run from my laptop, never from the
+		// server, so nothing on it can SSH anywhere, builds included.
 		Run(user.Account{Name: "deploy", Shell: "/bin/bash"}).
 		Run(file.Content{Path: "/etc/sudoers.d/deploy", Data: "deploy ALL=(ALL) NOPASSWD: ALL\n", Mode: "0440", Owner: "root", Group: "root"}).
-		// HTTPS for vt100.io (the site) and ci.vt100.io (Punchcard).
+		// HTTPS for vt100.io (the site) and punchcard.vt100.io.
 		Run(apt.Installed{Name: "caddy"}).
 		Run(file.Directory{Path: "/etc/caddy/conf.d", Owner: "root", Group: "root", Mode: "0755"}).
 		Run(file.Content{Path: "/etc/caddy/Caddyfile", Data: caddyfile, Mode: "0644", Owner: "root", Group: "root"}).
