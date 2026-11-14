@@ -1,0 +1,14 @@
+[tools]
+go = "1.27.4"
+
+[tasks.plan]
+description = "Show what would change at Hetzner and on the server"
+run = "go run ."
+
+[tasks.apply]
+description = "Create or update the vt100 server"
+run = "go run . -apply"
+
+[tasks.ci]
+description = "What Punchcard runs on push and PR"
+run = ["go vet ./...", "go build -o /dev/null ."]
