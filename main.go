@@ -69,6 +69,17 @@ var server = hetzner.Server(name).
 	OpenPorts(80, 443). // the site and Punchcard's webhook; SSH only over Tailscale
 	JoinTailnet(vt100Secret("tailscale-authkey"), "tag:vt100", "tag:ci")
 
+// caddyfile is Caddy's main configuration. unit writes one snippet per app
+// into /etc/caddy/conf.d (its domain and port) and reloads Caddy on deploy;
+// this file pulls those in. Caddy gets and renews Let's Encrypt
+// certificates for every domain by itself.
+const caddyfile = `{
+	email stian@hegglund.com
+}
+
+import /etc/caddy/conf.d/*.conf
+`
+
 // What runs on it. unit deploys the site and Punchcard on top of this.
 func host() *smed.HostSpec {
 	return smed.Host(name).
@@ -88,7 +99,13 @@ func host() *smed.HostSpec {
 		// The real limit is the tailnet policy: only tag:ci reaches this
 		// server as deploy.
 		Run(user.Account{Name: "deploy", Shell: "/bin/bash"}).
-		Run(file.Content{Path: "/etc/sudoers.d/deploy", Data: "deploy ALL=(ALL) NOPASSWD: ALL\n", Mode: "0440", Owner: "root", Group: "root"})
+		Run(file.Content{Path: "/etc/sudoers.d/deploy", Data: "deploy ALL=(ALL) NOPASSWD: ALL\n", Mode: "0440", Owner: "root", Group: "root"}).
+		// HTTPS for vt100.io (the site) and ci.vt100.io (Punchcard).
+		Run(apt.Installed{Name: "caddy"}).
+		Run(file.Directory{Path: "/etc/caddy/conf.d", Owner: "root", Group: "root", Mode: "0755"}).
+		Run(file.Content{Path: "/etc/caddy/Caddyfile", Data: caddyfile, Mode: "0644", Owner: "root", Group: "root"}).
+		Notify("reload-caddy").
+		Handler("reload-caddy", command.Run{Cmd: "systemctl reload caddy"})
 }
 
 func main() {

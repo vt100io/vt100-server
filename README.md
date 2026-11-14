@@ -7,7 +7,7 @@ mise run plan    # what would change at Hetzner and on the server; changes nothi
 mise run apply   # create the server, or bring it in line
 ```
 
-The first `apply` creates the server at Hetzner: a CX33 (4 vCPU, 8 GB) in Helsinki running Debian 13, with a firewall that lets in only ports 80 and 443, my rescue SSH key (`~/.ssh/vt100.pub`) for root instead of an emailed password, and a first boot that joins my tailnet as `tag:vt100` and `tag:ci`. SSH never faces the internet. The second `apply` configures it over Tailscale: git, a C compiler and mise for Punchcard's builds, and the `deploy` user that [unit](https://github.com/vt100io/unit) deploys as.
+The first `apply` creates the server at Hetzner: a CX33 (4 vCPU, 8 GB) in Helsinki running Debian 13, with a firewall that lets in only ports 80 and 443, my rescue SSH key (`~/.ssh/vt100.pub`) for root instead of an emailed password, and a first boot that joins my tailnet as `tag:vt100` and `tag:ci`. SSH never faces the internet. The second `apply` configures it over Tailscale: git, a C compiler and mise for Punchcard's builds, the `deploy` user that [unit](https://github.com/vt100io/unit) deploys as, and Caddy, which serves `vt100.io` and `punchcard.vt100.io` over HTTPS with Let's Encrypt certificates. The Caddyfile here knows no apps: it sets the certificate email and imports the snippet unit writes for each app on deploy.
 
 ## Secrets
 
